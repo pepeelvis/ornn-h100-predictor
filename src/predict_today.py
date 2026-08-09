@@ -1,0 +1,116 @@
+"""Daily entrypoint: fetch the latest Ornn H100 index history, forecast
+tomorrow's ~16:30 ET publish, log the prediction, and reconcile any past
+predictions whose actual print has since landed.
+
+Run this once a day, any time before the publish (data only updates once
+daily, so running it earlier vs. later the same day makes no difference).
+"""
+from __future__ import annotations
+
+import datetime as dt
+import os
+import warnings
+
+import pandas as pd
+
+from fetch import fetch_all
+from model import predict_next, walk_forward_backtest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+LOG_PATH = os.path.join(ROOT, "predictions_log.csv")
+LOG_COLUMNS = [
+    "run_at", "target_date", "last_known_date", "last_known_value",
+    "naive", "holt", "ridge", "blend", "lower_80", "upper_80",
+    "backtest_mae_blend", "backtest_mae_naive", "actual", "abs_error",
+]
+
+
+def load_log() -> pd.DataFrame:
+    if os.path.exists(LOG_PATH):
+        return pd.read_csv(LOG_PATH, parse_dates=["target_date", "last_known_date"])
+    return pd.DataFrame(columns=LOG_COLUMNS)
+
+
+def reconcile(log: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
+    """Fill in actuals for past predictions whose target_date has now published."""
+    actual_by_date = wide["h100_sxm"]
+    for i, row in log.iterrows():
+        if pd.notna(row.get("actual")):
+            continue
+        target = row["target_date"].date()
+        if target in actual_by_date.index:
+            actual = float(actual_by_date.loc[target])
+            log.at[i, "actual"] = actual
+            log.at[i, "abs_error"] = abs(actual - row["blend"])
+    return log
+
+
+def main():
+    print("Fetching latest Ornn H100 index history (public, ~3mo window)...")
+    wide = fetch_all()
+    print(f"  {len(wide)} days, {wide.index.min()} -> {wide.index.max()}")
+
+    print("Running walk-forward backtest to score naive / holt / ridge / blend...")
+    bt = walk_forward_backtest(wide, n_test=25)
+    for m, v in bt["mae"].items():
+        print(f"  MAE[{m:>6}] = {v:.4f}  (index units, e.g. $/GPU-hr)")
+    print(f"  Ensemble weights: holt={bt['weights']['holt']:.2f} ridge={bt['weights']['ridge']:.2f}")
+
+    fc = predict_next(wide, weights=bt["weights"])
+    resid_std = bt["resid_std"]
+    lower, upper = fc["blend"] - 1.28 * resid_std, fc["blend"] + 1.28 * resid_std
+
+    print()
+    print(f"Prediction for {fc['target_date'].date()} ~16:30 ET publish:")
+    print(f"  Last known ({fc['last_known_date']}): {fc['last_known_value']:.3f}")
+    print(f"  Naive (carry-forward):                {fc['naive']:.3f}")
+    print(f"  Holt (trend smoothing):                {fc['holt']:.3f}")
+    print(f"  Ridge (lag/cross-GPU regression):      {fc['ridge']:.3f}")
+    print(f"  >>> Blended forecast:                  {fc['blend']:.3f}")
+    print(f"      80% interval:                      [{lower:.3f}, {upper:.3f}]")
+
+    log = load_log()
+    log = reconcile(log, wide)
+
+    new_row = {
+        "run_at": dt.datetime.now().isoformat(timespec="seconds"),
+        "target_date": fc["target_date"],
+        "last_known_date": fc["last_known_date"],
+        "last_known_value": fc["last_known_value"],
+        "naive": fc["naive"],
+        "holt": fc["holt"],
+        "ridge": fc["ridge"],
+        "blend": fc["blend"],
+        "lower_80": lower,
+        "upper_80": upper,
+        "backtest_mae_blend": bt["mae"]["blend"],
+        "backtest_mae_naive": bt["mae"]["naive"],
+        "actual": pd.NA,
+        "abs_error": pd.NA,
+    }
+    already_logged = (log["target_date"].dt.date == fc["target_date"].date()).any() if len(log) else False
+    if not already_logged:
+        new_df = pd.DataFrame([new_row])
+        if log.empty:
+            log = new_df
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=FutureWarning)
+                log = pd.concat([log, new_df], ignore_index=True)
+    else:
+        print(f"  (already have a prediction logged for {fc['target_date'].date()}, not duplicating)")
+
+    log.to_csv(LOG_PATH, index=False)
+    print(f"\nLogged to {LOG_PATH}")
+
+    resolved = log.dropna(subset=["actual"])
+    if len(resolved) >= 3:
+        blend_mae = (resolved["actual"] - resolved["blend"]).abs().mean()
+        naive_mae = (resolved["actual"] - resolved["naive"]).abs().mean()
+        print(f"Track record so far ({len(resolved)} resolved days): "
+              f"blend MAE={blend_mae:.4f} vs naive MAE={naive_mae:.4f}")
+
+
+if __name__ == "__main__":
+    main()
