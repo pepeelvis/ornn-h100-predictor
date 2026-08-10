@@ -84,3 +84,31 @@ is asleep at 15:00 it fires on next wake instead.
 - **No live intraday updates.** The API only exposes one value per
   calendar day, so there's nothing to refine the forecast with between
   runs — running more than once a day is a no-op until the next print.
+
+## Cross-market tools
+
+Beyond the single-index predictor above, `src/` also has tools that look at
+the H100 price across *other* venues that reference Ornn's OCPI:
+
+- **`kalshi_curve.py`** — builds a market-implied forward curve from
+  Kalshi's live, publicly-readable GPU compute prediction markets
+  (weekly/monthly/yearly strike ladders on H100/H200/B200/A100/RTX5090,
+  settled against OCPI). No auth needed. Extracts an implied median/mean
+  price per expiry from each strike ladder's implied survival function
+  (isotonic-cleaned to handle thin/stale strikes). Run directly for a
+  standalone table, or via `market_curves.py` for the combined view.
+- **`lighter_perp.py`** — pulls the H100 perpetual future's mark/index price
+  and funding context from Lighter (on-chain perp DEX) via its public,
+  unauthenticated market-data API (`mainnet.zklighter.elliot.ai`). Note:
+  Lighter's *trading frontend* is geo-restricted and needs a VPN from some
+  regions for compliance reasons — that restriction is about executing
+  trades, not reading public market data, so this module doesn't need one.
+- **`market_curves.py`** — combines the above with the current OCPI spot
+  into one H100 term-structure snapshot (`data/h100_term_structure.csv`).
+- **`spread_model.py`** + **`gx_fetch.py`** — models the spread between
+  Ornn's OCPI H100 index and Compute Desk/General Index's GX Hopper US
+  index as a mean-reverting AR(1) process, with a walk-forward backtest and
+  a next-day spread forecast. GX has no free tier — `gx_fetch.py` prints
+  exact setup steps (free GX Go trial signup, index code lookup, API key)
+  if credentials aren't configured via `GX_API_TOKEN`/`GX_HOPPER_CODE` (or
+  `GX_USERNAME`/`GX_PASSWORD`) environment variables.

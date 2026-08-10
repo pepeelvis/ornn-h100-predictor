@@ -4,6 +4,8 @@ self-contained HTML file with an inline Chart.js chart.
 """
 from __future__ import annotations
 
+import html as _html
+import json as _json
 import os
 
 import pandas as pd
@@ -93,6 +95,10 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   </tbody>
 </table>
 
+{curve_section}
+
+{spread_section}
+
 <footer>
   Generated from <code>predictions_log.csv</code> by <code>build_dashboard.py</code>, pushed automatically each daily run.
   Data source: Ornn's public H100 SXM index (public tier caps at ~3 months of history).
@@ -166,6 +172,120 @@ def fmt(v, digits=4):
     return "--" if pd.isna(v) else f"{v:.{digits}f}"
 
 
+def build_curve_section() -> str:
+    """H100 forward curve: Ornn spot -> Lighter perp -> Kalshi implied
+    ladder prices. Best-effort -- if Kalshi/Lighter are unreachable, the
+    rest of the dashboard (the actual predictor track record) must still
+    build and publish, so any failure here degrades to a placeholder."""
+    try:
+        from market_curves import build_h100_term_structure
+
+        df = build_h100_term_structure()
+    except Exception as e:  # pragma: no cover - network dependent
+        return (
+            '<h2 style="font-size:1.05rem; margin-top:2rem;">H100 forward curve</h2>\n'
+            f'<p class="pending">Temporarily unavailable ({_html.escape(str(e))}).</p>'
+        )
+
+    rows = "\n    ".join(
+        f"<tr><td>{r['venue']}</td><td>{r['instrument']}</td><td>{int(r['days_out'])}</td>"
+        f"<td>{r['implied_price']:.3f}</td><td>{r['vs_spot_pct']:+.1f}%</td></tr>"
+        for _, r in df.iterrows()
+    )
+    labels = _json.dumps([r["instrument"] for _, r in df.iterrows()])
+    prices = _json.dumps([round(float(r["implied_price"]), 4) for _, r in df.iterrows()])
+
+    return f"""<h2 style="font-size:1.05rem; margin-top:2rem;">H100 forward curve</h2>
+<p class="sub" style="margin-bottom:0.75rem;">Ornn OCPI spot, Lighter's H100 perp mark price, and Kalshi's implied
+forward prices (inverted from its live GPU compute strike ladders, which settle against OCPI). Snapshot at page
+build time, not a logged history.</p>
+<canvas id="curveChart"></canvas>
+<table>
+  <thead><tr><th>Venue</th><th>Instrument</th><th>Days out</th><th>Implied price</th><th>vs. spot</th></tr></thead>
+  <tbody>
+    {rows}
+  </tbody>
+</table>
+<script>
+new Chart(document.getElementById('curveChart'), {{
+  type: 'bar',
+  data: {{
+    labels: {labels},
+    datasets: [{{
+      label: 'Implied H100 price ($/GPU-hr)',
+      data: {prices},
+      backgroundColor: '#6384ff',
+    }}],
+  }},
+  options: {{
+    plugins: {{ legend: {{ display: false }} }},
+    scales: {{ y: {{ title: {{ display: true, text: '$ / GPU-hr' }}, beginAtZero: false }} }},
+  }},
+}});
+</script>"""
+
+
+def build_spread_section() -> str:
+    """OCPI vs. GX Hopper US spread model. GX has no free tier, so this
+    degrades to setup instructions rather than failing the whole build when
+    GX_API_TOKEN/GX_HOPPER_CODE aren't configured."""
+    header = '<h2 style="font-size:1.05rem; margin-top:2rem;">OCPI vs. GX Hopper US spread</h2>'
+    try:
+        from fetch import fetch_gpu_history
+        from gx_fetch import fetch_gx_index
+        from spread_model import build_spread, fit_ar1, forecast_next_spread, signal, walk_forward_backtest
+
+        ocpi = fetch_gpu_history("H100 SXM")
+        gx = fetch_gx_index()
+    except RuntimeError as e:
+        escaped = _html.escape(str(e)).replace("\n", "<br>")
+        return f'{header}\n<p class="pending">{escaped}</p>'
+    except Exception as e:  # pragma: no cover - network dependent
+        return f'{header}\n<p class="pending">Temporarily unavailable ({_html.escape(str(e))}).</p>'
+
+    try:
+        df = build_spread(ocpi, gx)
+        params = fit_ar1(df["spread"])
+        fc = forecast_next_spread(df["spread"], params)
+        z = df["spread_zscore"].iloc[-1]
+        bt = walk_forward_backtest(df["spread"])
+    except Exception as e:  # pragma: no cover - data dependent
+        return f'{header}\n<p class="pending">Not enough overlapping OCPI/GX history yet ({_html.escape(str(e))}).</p>'
+
+    labels = _json.dumps([d.isoformat() for d in df.index])
+    spread_json = _json.dumps([round(float(v), 4) for v in df["spread"]])
+
+    return f"""{header}
+<p class="sub" style="margin-bottom:0.75rem;">Ornn's OCPI H100 series (single-SKU) minus Compute Desk's GX Hopper US
+index (blends H100+H200), modeled as a mean-reverting AR(1) process. {signal(z)}</p>
+<div class="stats">
+  <div class="stat"><div class="label">Latest spread</div><div class="value">{fmt(df['spread'].iloc[-1], 3)}</div><div class="note">$/GPU-hr</div></div>
+  <div class="stat"><div class="label">Z-score</div><div class="value">{fmt(z, 2)}</div><div class="note">vs 20d rolling</div></div>
+  <div class="stat"><div class="label">Half-life</div><div class="value">{fmt(params['half_life_days'], 1)}</div><div class="note">days to revert 50%</div></div>
+  <div class="stat"><div class="label">Next-day forecast</div><div class="value">{fmt(fc, 3)}</div><div class="note">AR(1) MAE {fmt(bt['mae_ar1'], 3)} vs naive {fmt(bt['mae_naive'], 3)}</div></div>
+</div>
+<canvas id="spreadChart"></canvas>
+<script>
+new Chart(document.getElementById('spreadChart'), {{
+  type: 'line',
+  data: {{
+    labels: {labels},
+    datasets: [{{
+      label: 'OCPI - GX Hopper spread',
+      data: {spread_json},
+      borderColor: '#ff6384',
+      backgroundColor: '#ff6384',
+      borderWidth: 2,
+      pointRadius: 2,
+    }}],
+  }},
+  options: {{
+    scales: {{ y: {{ title: {{ display: true, text: '$ / GPU-hr' }} }} }},
+  }},
+}});
+</script>"""
+
+
 def main():
     log = pd.read_csv(LOG_PATH, parse_dates=["target_date", "last_known_date"])
     log = log.sort_values("target_date")
@@ -206,7 +326,10 @@ def main():
     lower_json = [round(float(r["lower_80"]), 4) for _, r in log.iterrows()]
     upper_json = [round(float(r["upper_80"]), 4) for _, r in log.iterrows()]
 
-    import json as _json
+    print("Building forward-curve section (Kalshi + Lighter)...")
+    curve_section = build_curve_section()
+    print("Building OCPI/GX spread section...")
+    spread_section = build_spread_section()
 
     html = PAGE_TEMPLATE.format(
         last_updated=pd.Timestamp.now().strftime("%Y-%m-%d %H:%M %Z") or pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
@@ -217,6 +340,8 @@ def main():
         improvement=improvement,
         improvement_note=improvement_note,
         table_rows=table_rows,
+        curve_section=curve_section,
+        spread_section=spread_section,
         labels_json=_json.dumps(labels_json),
         actual_json=_json.dumps(actual_json),
         blend_json=_json.dumps(blend_json),
