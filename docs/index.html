@@ -41,7 +41,7 @@
 </head>
 <body>
 <h1>Ornn H100 SXM Index -- Daily Predictor</h1>
-<p class="sub">Blend of Holt trend-smoothing + Ridge regression on lag / cross-GPU features, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-10 22:21 .</p>
+<p class="sub">Blend of Holt trend-smoothing + Ridge regression on lag / cross-GPU features, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-10 22:23 .</p>
 
 <div class="stats">
   <div class="stat">
@@ -74,7 +74,7 @@
     <tr><th>Target date</th><th>Blend forecast</th><th>80% interval</th><th>Actual</th><th>Abs. error</th></tr>
   </thead>
   <tbody>
-    <tr><td>2026-08-11</td><td>--</td><td>[--, --]</td><td class="pending">pending</td><td class="pending">--</td></tr>
+    <tr><td>2026-08-11</td><td>2.579</td><td>[2.502, 2.655]</td><td class="pending">pending</td><td class="pending">--</td></tr>
     <tr><td>2026-08-09</td><td>2.647</td><td>[2.576, 2.719]</td><td>2.530</td><td>0.1174</td></tr>
     <tr><td>2026-07-20</td><td>2.705</td><td>[2.628, 2.782]</td><td>2.680</td><td>0.0252</td></tr>
   </tbody>
@@ -124,9 +124,9 @@ new Chart(document.getElementById('curveChart'), {
 <script>
 const labels = ["2026-07-20", "2026-08-09", "2026-08-11"];
 const actual = [2.68, 2.53, null];
-const blend = [2.7052, 2.6474, NaN];
-const lower = [2.628, 2.5759, NaN];
-const upper = [2.7823, 2.719, NaN];
+const blend = [2.7052, 2.6474, 2.5785];
+const lower = [2.628, 2.5759, 2.5021];
+const upper = [2.7823, 2.719, 2.6549];
 
 new Chart(document.getElementById('chart'), {
   type: 'line',
