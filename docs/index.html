@@ -41,27 +41,27 @@
 </head>
 <body>
 <h1>Ornn H100 SXM Index -- Daily Predictor</h1>
-<p class="sub">Blend of Holt trend-smoothing + Ridge regression on lag / cross-GPU features, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-10 22:23 .</p>
+<p class="sub">Blend of Holt trend-smoothing + Ridge regression on lag / cross-GPU features, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-11 11:33 .</p>
 
 <div class="stats">
   <div class="stat">
     <div class="label">Resolved predictions</div>
-    <div class="value">2</div>
-    <div class="note">of 3 logged</div>
+    <div class="value">3</div>
+    <div class="note">of 4 logged</div>
   </div>
   <div class="stat">
     <div class="label">Blend MAE</div>
-    <div class="value">0.0713</div>
+    <div class="value">0.0528</div>
     <div class="note">index units ($/GPU-hr)</div>
   </div>
   <div class="stat">
     <div class="label">Naive MAE</div>
-    <div class="value">0.0800</div>
+    <div class="value">0.0633</div>
     <div class="note">carry-forward baseline</div>
   </div>
   <div class="stat">
     <div class="label">Improvement vs. naive</div>
-    <div class="value">+10.9%</div>
+    <div class="value">+16.6%</div>
     <div class="note">lower blend MAE is better</div>
   </div>
 </div>
@@ -75,6 +75,7 @@
   </thead>
   <tbody>
     <tr><td>2026-08-11</td><td>2.579</td><td>[2.502, 2.655]</td><td class="pending">pending</td><td class="pending">--</td></tr>
+    <tr><td>2026-08-10</td><td>2.544</td><td>[2.467, 2.621]</td><td>2.560</td><td>0.0159</td></tr>
     <tr><td>2026-08-09</td><td>2.647</td><td>[2.576, 2.719]</td><td>2.530</td><td>0.1174</td></tr>
     <tr><td>2026-07-20</td><td>2.705</td><td>[2.628, 2.782]</td><td>2.680</td><td>0.0252</td></tr>
   </tbody>
@@ -89,9 +90,9 @@ build time, not a logged history.</p>
   <thead><tr><th>Venue</th><th>Instrument</th><th>Days out</th><th>Implied price</th><th>vs. spot</th></tr></thead>
   <tbody>
     <tr><td>Ornn OCPI</td><td>spot (daily print)</td><td>0</td><td>2.560</td><td>+0.0%</td></tr>
-    <tr><td>Lighter</td><td>H100 perp (mark)</td><td>0</td><td>2.679</td><td>+4.6%</td></tr>
-    <tr><td>Kalshi</td><td>monthly (KXH100MON-26AUG31)</td><td>21</td><td>2.596</td><td>+1.4%</td></tr>
-    <tr><td>Kalshi</td><td>yearly (KXH100MAX-26DEC31)</td><td>143</td><td>3.423</td><td>+33.7%</td></tr>
+    <tr><td>Lighter</td><td>H100 perp (mark)</td><td>0</td><td>2.676</td><td>+4.5%</td></tr>
+    <tr><td>Kalshi</td><td>monthly (KXH100MON-26AUG31)</td><td>20</td><td>2.610</td><td>+2.0%</td></tr>
+    <tr><td>Kalshi</td><td>yearly (KXH100MAX-26DEC31)</td><td>142</td><td>3.418</td><td>+33.5%</td></tr>
   </tbody>
 </table>
 <script>
@@ -101,7 +102,7 @@ new Chart(document.getElementById('curveChart'), {
     labels: ["spot (daily print)", "H100 perp (mark)", "monthly (KXH100MON-26AUG31)", "yearly (KXH100MAX-26DEC31)"],
     datasets: [{
       label: 'Implied H100 price ($/GPU-hr)',
-      data: [2.56, 2.6789, 2.5964, 3.4226],
+      data: [2.56, 2.6759, 2.61, 3.4179],
       backgroundColor: '#6384ff',
     }],
   },
@@ -122,11 +123,11 @@ new Chart(document.getElementById('curveChart'), {
 </footer>
 
 <script>
-const labels = ["2026-07-20", "2026-08-09", "2026-08-11"];
-const actual = [2.68, 2.53, null];
-const blend = [2.7052, 2.6474, 2.5785];
-const lower = [2.628, 2.5759, 2.5021];
-const upper = [2.7823, 2.719, 2.6549];
+const labels = ["2026-07-20", "2026-08-09", "2026-08-10", "2026-08-11"];
+const actual = [2.68, 2.53, 2.56, null];
+const blend = [2.7052, 2.6474, 2.5441, 2.5785];
+const lower = [2.628, 2.5759, 2.467, 2.5021];
+const upper = [2.7823, 2.719, 2.6212, 2.6549];
 
 new Chart(document.getElementById('chart'), {
   type: 'line',
