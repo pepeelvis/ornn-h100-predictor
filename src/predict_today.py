@@ -13,6 +13,7 @@ import time
 import warnings
 
 import pandas as pd
+import requests
 
 from fetch import fetch_all
 from features import TARGET_COL
@@ -48,23 +49,36 @@ def reconcile(log: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
     return log
 
 
-def fetch_all_with_retry(retries: int = 1, delay_seconds: float = 5.0) -> pd.DataFrame:
-    """fetch_all(), but guards against a transient Ornn API hiccup silently
-    leaving the latest row's target value missing -- that happened once in
-    production (2026-08-10 run): a NaN last-known value propagated through
-    naive/holt/blend and got logged + published as blank cells with no
-    error. One retry after a short pause resolves a momentary gap; if the
-    target column is still NaN on the last date after that, fail loudly
-    instead of logging garbage."""
+def fetch_all_with_retry(retries: int = 3, delay_seconds: float = 30.0) -> pd.DataFrame:
+    """fetch_all(), but guards against transient failures silently killing
+    or corrupting the daily run. Two known incidents in production:
+      - 2026-08-10: a NaN last-known value propagated through naive/holt/blend
+        and got logged + published as blank cells with no error.
+      - 2026-08-12: the LaunchAgent fired right as the machine woke from
+        sleep, before networking was back up, so DNS resolution for the
+        Ornn API raised a raw ConnectionError that crashed the whole script
+        before anything could be logged -- no prediction, no publish, and
+        (worse) no fired retry, since that failure mode wasn't covered here.
+    Retries (with a longer pause, since a just-woken machine can take a bit
+    to get networking back) on either a NaN target value or a
+    connection/DNS-shaped requests exception; still fails loudly instead of
+    logging garbage or silently skipping the day if the problem persists.
+    """
     last_error = None
     for attempt in range(retries + 1):
-        wide = fetch_all()
+        try:
+            wide = fetch_all()
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
+            last_error = f"network error fetching Ornn API: {exc} (attempt {attempt + 1}/{retries + 1})"
+            print(f"  Warning: {last_error}, retrying in {delay_seconds:.0f}s...")
+            time.sleep(delay_seconds)
+            continue
         if pd.notna(wide[TARGET_COL].iloc[-1]):
             return wide
         last_error = f"{TARGET_COL} is NaN on {wide.index[-1]} (attempt {attempt + 1}/{retries + 1})"
         print(f"  Warning: {last_error}, retrying in {delay_seconds:.0f}s...")
         time.sleep(delay_seconds)
-    raise RuntimeError(f"Ornn API returned no usable {TARGET_COL} value for the latest date after retrying: {last_error}")
+    raise RuntimeError(f"Ornn API fetch did not succeed after retrying: {last_error}")
 
 
 def main():
