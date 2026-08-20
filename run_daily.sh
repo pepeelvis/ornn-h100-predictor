@@ -18,8 +18,8 @@ python build_dashboard.py
 # broken after that, fail loudly instead of silently skipping today's publish.
 cd "$ROOT"
 publish() {
-    if [ -n "$(git status --porcelain predictions_log.csv docs/)" ]; then
-        git add predictions_log.csv docs/
+    if [ -n "$(git status --porcelain predictions_log.csv lighter_basis_log.csv docs/)" ]; then
+        git add predictions_log.csv lighter_basis_log.csv docs/
         git commit -m "Daily update: $(date +%Y-%m-%d)"
     fi
     # Unconditional: also catches a prior attempt that committed locally but
