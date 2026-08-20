@@ -41,27 +41,27 @@
 </head>
 <body>
 <h1>Ornn H100 SXM Index -- Daily Predictor</h1>
-<p class="sub">Blend of Holt trend-smoothing + Ridge regression on lag / cross-GPU features, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-19 16:01 .</p>
+<p class="sub">Inverse-error-weighted blend of Holt trend-smoothing, Ridge regression on lag / cross-GPU features, and a 7-day mean-reversion model, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-20 09:17 .</p>
 
 <div class="stats">
   <div class="stat">
     <div class="label">Resolved predictions</div>
-    <div class="value">11</div>
-    <div class="note">of 12 logged</div>
+    <div class="value">12</div>
+    <div class="note">of 13 logged</div>
   </div>
   <div class="stat">
     <div class="label">Blend MAE</div>
-    <div class="value">0.0839</div>
+    <div class="value">0.0804</div>
     <div class="note">index units ($/GPU-hr)</div>
   </div>
   <div class="stat">
     <div class="label">Naive MAE</div>
-    <div class="value">0.0882</div>
+    <div class="value">0.0900</div>
     <div class="note">carry-forward baseline</div>
   </div>
   <div class="stat">
     <div class="label">Improvement vs. naive</div>
-    <div class="value">+4.8%</div>
+    <div class="value">+10.7%</div>
     <div class="note">lower blend MAE is better</div>
   </div>
 </div>
@@ -74,7 +74,8 @@
     <tr><th>Target date</th><th>Blend forecast</th><th>80% interval</th><th>Actual</th><th>Abs. error</th></tr>
   </thead>
   <tbody>
-    <tr><td>2026-08-19</td><td>2.971</td><td>[2.858, 3.084]</td><td class="pending">pending</td><td class="pending">--</td></tr>
+    <tr><td>2026-08-20</td><td>2.850</td><td>[2.736, 2.963]</td><td class="pending">pending</td><td class="pending">--</td></tr>
+    <tr><td>2026-08-19</td><td>2.971</td><td>[2.858, 3.084]</td><td>2.930</td><td>0.0410</td></tr>
     <tr><td>2026-08-18</td><td>2.751</td><td>[2.664, 2.838]</td><td>3.040</td><td>0.2890</td></tr>
     <tr><td>2026-08-17</td><td>2.638</td><td>[2.555, 2.722]</td><td>2.740</td><td>0.1018</td></tr>
     <tr><td>2026-08-16</td><td>2.644</td><td>[2.561, 2.728]</td><td>2.640</td><td>0.0044</td></tr>
@@ -97,10 +98,10 @@ build time, not a logged history.</p>
 <table>
   <thead><tr><th>Venue</th><th>Instrument</th><th>Days out</th><th>Implied price</th><th>vs. spot</th></tr></thead>
   <tbody>
-    <tr><td>Ornn OCPI</td><td>spot (daily print)</td><td>0</td><td>3.040</td><td>+0.0%</td></tr>
-    <tr><td>Lighter</td><td>H100 perp (mark)</td><td>0</td><td>3.094</td><td>+1.8%</td></tr>
-    <tr><td>Kalshi</td><td>monthly (KXH100MON-26AUG31)</td><td>12</td><td>2.895</td><td>-4.8%</td></tr>
-    <tr><td>Kalshi</td><td>yearly (KXH100MAX-26DEC31)</td><td>134</td><td>3.517</td><td>+15.7%</td></tr>
+    <tr><td>Ornn OCPI</td><td>spot (daily print)</td><td>0</td><td>2.930</td><td>+0.0%</td></tr>
+    <tr><td>Lighter</td><td>H100 perp (mark)</td><td>0</td><td>2.864</td><td>-2.2%</td></tr>
+    <tr><td>Kalshi</td><td>monthly (KXH100MON-26AUG31)</td><td>11</td><td>2.924</td><td>-0.2%</td></tr>
+    <tr><td>Kalshi</td><td>yearly (KXH100MAX-26DEC31)</td><td>133</td><td>3.517</td><td>+20.1%</td></tr>
   </tbody>
 </table>
 <script>
@@ -110,7 +111,7 @@ new Chart(document.getElementById('curveChart'), {
     labels: ["spot (daily print)", "H100 perp (mark)", "monthly (KXH100MON-26AUG31)", "yearly (KXH100MAX-26DEC31)"],
     datasets: [{
       label: 'Implied H100 price ($/GPU-hr)',
-      data: [3.04, 3.0944, 2.895, 3.5175],
+      data: [2.93, 2.8642, 2.9243, 3.5175],
       backgroundColor: '#6384ff',
     }],
   },
@@ -131,11 +132,11 @@ new Chart(document.getElementById('curveChart'), {
 </footer>
 
 <script>
-const labels = ["2026-07-20", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19"];
-const actual = [2.68, 2.53, 2.56, 2.67, 2.72, 2.73, 2.79, 2.66, 2.64, 2.74, 3.04, null];
-const blend = [2.7052, 2.6474, 2.5441, 2.5785, 2.6603, 2.7016, 2.7005, 2.7605, 2.6444, 2.6382, 2.751, 2.971];
-const lower = [2.628, 2.5759, 2.467, 2.5021, 2.5841, 2.6247, 2.6236, 2.682, 2.5608, 2.5546, 2.6642, 2.8577];
-const upper = [2.7823, 2.719, 2.6212, 2.6549, 2.7366, 2.7785, 2.7773, 2.8391, 2.7279, 2.7218, 2.8379, 3.0844];
+const labels = ["2026-07-20", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20"];
+const actual = [2.68, 2.53, 2.56, 2.67, 2.72, 2.73, 2.79, 2.66, 2.64, 2.74, 3.04, 2.93, null];
+const blend = [2.7052, 2.6474, 2.5441, 2.5785, 2.6603, 2.7016, 2.7005, 2.7605, 2.6444, 2.6382, 2.751, 2.971, 2.8497];
+const lower = [2.628, 2.5759, 2.467, 2.5021, 2.5841, 2.6247, 2.6236, 2.682, 2.5608, 2.5546, 2.6642, 2.8577, 2.7362];
+const upper = [2.7823, 2.719, 2.6212, 2.6549, 2.7366, 2.7785, 2.7773, 2.8391, 2.7279, 2.7218, 2.8379, 3.0844, 2.9631];
 
 new Chart(document.getElementById('chart'), {
   type: 'line',

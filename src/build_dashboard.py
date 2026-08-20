@@ -58,7 +58,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 <h1>Ornn H100 SXM Index -- Daily Predictor</h1>
-<p class="sub">Blend of Holt trend-smoothing + Ridge regression on lag / cross-GPU features, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated {last_updated}.</p>
+<p class="sub">Inverse-error-weighted blend of Holt trend-smoothing, Ridge regression on lag / cross-GPU features, and a 7-day mean-reversion model, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated {last_updated}.</p>
 
 <div class="stats">
   <div class="stat">

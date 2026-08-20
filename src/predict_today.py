@@ -24,7 +24,7 @@ ROOT = os.path.dirname(HERE)
 LOG_PATH = os.path.join(ROOT, "predictions_log.csv")
 LOG_COLUMNS = [
     "run_at", "target_date", "last_known_date", "last_known_value",
-    "naive", "holt", "ridge", "blend", "lower_80", "upper_80",
+    "naive", "holt", "ridge", "meanrev", "blend", "lower_80", "upper_80",
     "backtest_mae_blend", "backtest_mae_naive", "actual", "abs_error",
 ]
 
@@ -86,11 +86,12 @@ def main():
     wide = fetch_all_with_retry()
     print(f"  {len(wide)} days, {wide.index.min()} -> {wide.index.max()}")
 
-    print("Running walk-forward backtest to score naive / holt / ridge / blend...")
+    print("Running walk-forward backtest to score naive / holt / ridge / meanrev / blend...")
     bt = walk_forward_backtest(wide, n_test=25)
     for m, v in bt["mae"].items():
-        print(f"  MAE[{m:>6}] = {v:.4f}  (index units, e.g. $/GPU-hr)")
-    print(f"  Ensemble weights: holt={bt['weights']['holt']:.2f} ridge={bt['weights']['ridge']:.2f}")
+        print(f"  MAE[{m:>7}] = {v:.4f}  (index units, e.g. $/GPU-hr)")
+    print(f"  Ensemble weights (holt excluded, see model.py): "
+          f"ridge={bt['weights']['ridge']:.2f} meanrev={bt['weights']['meanrev']:.2f}")
 
     fc = predict_next(wide, weights=bt["weights"])
     resid_std = bt["resid_std"]
@@ -102,6 +103,7 @@ def main():
     print(f"  Naive (carry-forward):                {fc['naive']:.3f}")
     print(f"  Holt (trend smoothing):                {fc['holt']:.3f}")
     print(f"  Ridge (lag/cross-GPU regression):      {fc['ridge']:.3f}")
+    print(f"  Mean-reversion (7d, k=0.3):            {fc['meanrev']:.3f}")
     print(f"  >>> Blended forecast:                  {fc['blend']:.3f}")
     print(f"      80% interval:                      [{lower:.3f}, {upper:.3f}]")
 
@@ -116,6 +118,7 @@ def main():
         "naive": fc["naive"],
         "holt": fc["holt"],
         "ridge": fc["ridge"],
+        "meanrev": fc["meanrev"],
         "blend": fc["blend"],
         "lower_80": lower,
         "upper_80": upper,
