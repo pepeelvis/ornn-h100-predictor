@@ -1,7 +1,11 @@
 #!/bin/bash
-# Daily driver for the Ornn H100 index predictor. Invoked by the
-# com.ornn.h100predictor LaunchAgent at 15:00 America/New_York, ahead of
-# the index's ~16:30 ET publish. Safe to also run by hand.
+# Manual/fallback driver for the Ornn H100 index predictor. The daily
+# automated run now happens on GitHub Actions (.github/workflows/
+# daily-predict.yml) rather than via a local LaunchAgent (retired
+# 2026-08-21 -- see README's "Daily automation" section for why). This
+# script is kept for ad-hoc local runs (debugging, catching up a gap by
+# hand) and still publishes through the dedicated clone below rather than
+# this worktree directly.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 ROOT="$(pwd)"

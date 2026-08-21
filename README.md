@@ -41,31 +41,27 @@ track record over time.
 
 ## Daily automation
 
-A macOS LaunchAgent (`com.ornn.h100predictor`, installed at
-`~/Library/LaunchAgents/com.ornn.h100predictor.plist`) runs
-`run_daily.sh` every day at **15:00 America/New_York** — ahead of the
-~16:30 ET publish, and after the prior day's actual has already landed
-(so reconciliation happens on the same run). The Mac's system timezone is
-already `America/New_York`, so this tracks ET correctly across DST without
-any manual adjustment.
+A GitHub Actions workflow (`.github/workflows/daily-predict.yml`) runs the
+prediction + dashboard build on a schedule (19:00 UTC, i.e. 15:00 ET in
+summer / 14:00 ET in winter -- either way comfortably ahead of the ~16:30 ET
+publish) and commits/pushes `predictions_log.csv`, `lighter_basis_log.csv`,
+and `docs/` if anything changed. Runs on GitHub's own infra, so it doesn't
+depend on any local machine being on, awake, or networked.
 
 ```bash
-# check status / next run
-launchctl list | grep ornn
+# trigger a run manually
+gh workflow run daily-predict.yml --repo pepeelvis/ornn-h100-predictor
 
-# run it manually right now
-launchctl kickstart -k gui/$(id -u)/com.ornn.h100predictor
-
-# logs
-tail -f ~/Library/Logs/ornn-h100predictor.log
-tail -f ~/Library/Logs/ornn-h100predictor.err.log
-
-# disable
-launchctl bootout gui/$(id -u)/com.ornn.h100predictor
+# check recent runs
+gh run list --workflow=daily-predict.yml --repo pepeelvis/ornn-h100-predictor
 ```
 
-Caveat: `StartCalendarInterval` doesn't wake a sleeping Mac — if the machine
-is asleep at 15:00 it fires on next wake instead.
+This project previously ran via a macOS LaunchAgent on a local machine
+(retired 2026-08-21). That setup repeatedly caused gaps in the public track
+record -- the LaunchAgent silently unloaded after any restart, and it once
+fired right as the machine woke from sleep, before networking was back,
+crashing the run outright. Moving to GitHub Actions eliminates that whole
+class of failure.
 
 ## Known limitations
 
