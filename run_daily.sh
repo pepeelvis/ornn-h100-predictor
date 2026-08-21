@@ -9,25 +9,47 @@ source .venv/bin/activate
 cd src
 python predict_today.py
 python build_dashboard.py
-
-# Publish the updated log + dashboard to the live GitHub Pages site.
-# This workspace's .git is a linked worktree pointing at a separate primary
-# checkout; a transient collision there (e.g. Clawdmeter's own checkpoint
-# writes) can make git fail here with "not a git repository" (happened once,
-# 2026-08-09). One retry after a short pause absorbs that; if it's still
-# broken after that, fail loudly instead of silently skipping today's publish.
 cd "$ROOT"
+
+# Publish via a dedicated, standalone clone (~/.ornn-publish-clone), not this
+# worktree. This worktree's .git is a linked worktree sharing a primary
+# checkout with several unrelated Clawdmeter project workspaces; concurrent
+# git activity from any of those siblings (e.g. a checkpoint commit) can
+# transiently break git resolution here ("fatal: not a git repository") --
+# happened 2026-08-09, then again 2026-08-20 where it outlasted the retry
+# guard and silently skipped a day's publish. The dedicated clone has its
+# own independent .git, so sibling-workspace contention can't reach it.
+PUBLISH_CLONE="$HOME/.ornn-publish-clone"
 publish() {
-    if [ -n "$(git status --porcelain predictions_log.csv lighter_basis_log.csv docs/)" ]; then
-        git add predictions_log.csv lighter_basis_log.csv docs/
-        git commit -m "Daily update: $(date +%Y-%m-%d)"
+    git -C "$PUBLISH_CLONE" pull --ff-only origin main
+    cp "$ROOT/predictions_log.csv" "$PUBLISH_CLONE/predictions_log.csv"
+    cp "$ROOT/lighter_basis_log.csv" "$PUBLISH_CLONE/lighter_basis_log.csv"
+    rsync -a --delete "$ROOT/docs/" "$PUBLISH_CLONE/docs/"
+    if [ -n "$(git -C "$PUBLISH_CLONE" status --porcelain predictions_log.csv lighter_basis_log.csv docs/)" ]; then
+        git -C "$PUBLISH_CLONE" add predictions_log.csv lighter_basis_log.csv docs/
+        git -C "$PUBLISH_CLONE" commit -m "Daily update: $(date +%Y-%m-%d)"
     fi
     # Unconditional: also catches a prior attempt that committed locally but
     # failed to push (retry below would otherwise see a clean tree and no-op).
-    git push origin main
+    git -C "$PUBLISH_CLONE" push origin main
 }
 if ! publish; then
     echo "Publish failed, retrying in 10s..." >&2
     sleep 10
     publish
 fi
+
+# Best-effort: sync this worktree's local copy of just the generated files to
+# what just published, so a future manual session here isn't looking at a
+# stale/diverged version of them. predict_today.py/build_dashboard.py above
+# always leave these paths locally modified (build_dashboard.py stamps a
+# fresh "last updated" time every run), so a plain `git pull` would conflict
+# on them virtually every day -- `checkout <ref> -- <paths>` sidesteps that
+# by directly overwriting just these three known-fully-generated paths with
+# origin's version (safe: nothing hand-authored ever lives in them), without
+# touching HEAD or any unrelated uncommitted work elsewhere in the worktree
+# (e.g. in-progress src/ edits from a manual session). Not on the critical
+# path -- publish already succeeded above -- so a failure here is just a
+# warning, never fatal to today's run.
+(git fetch origin main && git checkout origin/main -- predictions_log.csv lighter_basis_log.csv docs/) \
+    || echo "Warning: could not sync worktree's local copy after publish (non-fatal, publish itself succeeded)" >&2
