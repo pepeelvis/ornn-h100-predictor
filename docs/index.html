@@ -41,7 +41,7 @@
 </head>
 <body>
 <h1>Ornn H100 SXM Index -- Daily Predictor</h1>
-<p class="sub">Inverse-error-weighted blend of Holt trend-smoothing, Ridge regression on lag / cross-GPU features, and a 7-day mean-reversion model, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-21 13:43 .</p>
+<p class="sub">Inverse-error-weighted blend of Holt trend-smoothing, Ridge regression on lag / cross-GPU features, and a 7-day mean-reversion model, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-08-21 18:49 .</p>
 
 <div class="stats">
   <div class="stat">
@@ -92,36 +92,7 @@
 </table>
 
 <h2 style="font-size:1.05rem; margin-top:2rem;">H100 forward curve</h2>
-<p class="sub" style="margin-bottom:0.75rem;">Ornn OCPI spot, Lighter's H100 perp mark price, and Kalshi's implied
-forward prices (inverted from its live GPU compute strike ladders, which settle against OCPI). Snapshot at page
-build time, not a logged history.</p>
-<canvas id="curveChart"></canvas>
-<table>
-  <thead><tr><th>Venue</th><th>Instrument</th><th>Days out</th><th>Implied price</th><th>vs. spot</th></tr></thead>
-  <tbody>
-    <tr><td>Ornn OCPI</td><td>spot (daily print)</td><td>0</td><td>2.900</td><td>+0.0%</td></tr>
-    <tr><td>Lighter</td><td>H100 perp (mark)</td><td>0</td><td>2.834</td><td>-2.3%</td></tr>
-    <tr><td>Kalshi</td><td>monthly (KXH100MON-26AUG31)</td><td>10</td><td>2.910</td><td>+0.3%</td></tr>
-    <tr><td>Kalshi</td><td>yearly (KXH100MAX-26DEC31)</td><td>132</td><td>3.517</td><td>+21.3%</td></tr>
-  </tbody>
-</table>
-<script>
-new Chart(document.getElementById('curveChart'), {
-  type: 'bar',
-  data: {
-    labels: ["spot (daily print)", "H100 perp (mark)", "monthly (KXH100MON-26AUG31)", "yearly (KXH100MAX-26DEC31)"],
-    datasets: [{
-      label: 'Implied H100 price ($/GPU-hr)',
-      data: [2.9, 2.834, 2.91, 3.5175],
-      backgroundColor: '#6384ff',
-    }],
-  },
-  options: {
-    plugins: { legend: { display: false } },
-    scales: { y: { title: { display: true, text: '$ / GPU-hr' }, beginAtZero: false } },
-  },
-});
-</script>
+<p class="pending">Temporarily unavailable (module &#x27;numpy&#x27; has no attribute &#x27;trapz&#x27;).</p>
 
 <h2 style="font-size:1.05rem; margin-top:2rem;">OCPI vs. GX Hopper US spread</h2>
 <p class="pending">GX (General Index) credentials not found.<br>  1. Sign up for the free GX Go trial: https://app.g-x.co<br>  2. Find &#x27;GX Hopper US&#x27; in the index catalog to get its GX code (e.g. GX0001234)<br>  3. Generate an API key: https://app.g-x.co/MyAccount#Settings<br>  4. export GX_API_TOKEN=&lt;key&gt;   export GX_HOPPER_CODE=&lt;code&gt;<br>     (or export GX_USERNAME=... GX_PASSWORD=... instead of GX_API_TOKEN)</p>
