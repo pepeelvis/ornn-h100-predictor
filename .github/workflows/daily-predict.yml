@@ -1,0 +1,49 @@
+name: Daily H100 prediction
+
+# Runs on GitHub's infra instead of a local machine so the daily forecast
+# doesn't depend on a laptop being on, awake, and networked at 15:00 ET --
+# a local macOS LaunchAgent kept silently unloading after restarts and
+# failing on sleep/wake, causing repeated gaps in the public track record
+# (see predictions_log.csv history around 2026-08-10 through 2026-08-20).
+#
+# 19:00 UTC = 15:00 EDT (summer). In winter (EST, UTC-5) this fires at
+# 14:00 ET instead of 15:00 -- still comfortably ahead of the ~16:30 ET
+# publish, so left as a fixed UTC cron rather than juggling two schedules.
+on:
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run prediction + build dashboard
+        run: |
+          cd src
+          python predict_today.py
+          python build_dashboard.py
+
+      - name: Publish if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain predictions_log.csv lighter_basis_log.csv docs/)" ]; then
+            git add predictions_log.csv lighter_basis_log.csv docs/
+            git commit -m "Daily update: $(date +%Y-%m-%d)"
+            git push origin HEAD:main
+          else
+            echo "Nothing changed, skipping publish."
+          fi
