@@ -41,27 +41,27 @@
 </head>
 <body>
 <h1>Ornn H100 SXM Index -- Daily Predictor</h1>
-<p class="sub">Inverse-error-weighted blend of Holt trend-smoothing, Ridge regression on lag / cross-GPU features, and a 7-day mean-reversion model, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-09-01 21:35 .</p>
+<p class="sub">Inverse-error-weighted blend of Holt trend-smoothing, Ridge regression on lag / cross-GPU features, and a 7-day mean-reversion model, backtested via walk-forward validation against a naive carry-forward baseline. Runs daily at 15:00 ET, ~90 min before the index's ~16:30 ET publish. Last updated 2026-09-02 21:34 .</p>
 
 <div class="stats">
   <div class="stat">
     <div class="label">Resolved predictions</div>
-    <div class="value">23</div>
-    <div class="note">of 24 logged</div>
+    <div class="value">24</div>
+    <div class="note">of 25 logged</div>
   </div>
   <div class="stat">
     <div class="label">Blend MAE</div>
-    <div class="value">0.0854</div>
+    <div class="value">0.0824</div>
     <div class="note">index units ($/GPU-hr)</div>
   </div>
   <div class="stat">
     <div class="label">Naive MAE</div>
-    <div class="value">0.0943</div>
+    <div class="value">0.0904</div>
     <div class="note">carry-forward baseline</div>
   </div>
   <div class="stat">
     <div class="label">Improvement vs. naive</div>
-    <div class="value">+9.5%</div>
+    <div class="value">+8.9%</div>
     <div class="note">lower blend MAE is better</div>
   </div>
 </div>
@@ -74,7 +74,8 @@
     <tr><th>Target date</th><th>Blend forecast</th><th>80% interval</th><th>Actual</th><th>Abs. error</th></tr>
   </thead>
   <tbody>
-    <tr><td>2026-09-02</td><td>2.816</td><td>[2.659, 2.974]</td><td class="pending">pending</td><td class="pending">--</td></tr>
+    <tr><td>2026-09-03</td><td>2.804</td><td>[2.653, 2.955]</td><td class="pending">pending</td><td class="pending">--</td></tr>
+    <tr><td>2026-09-02</td><td>2.816</td><td>[2.659, 2.974]</td><td>2.830</td><td>0.0137</td></tr>
     <tr><td>2026-09-01</td><td>2.905</td><td>[2.747, 3.062]</td><td>2.830</td><td>0.0746</td></tr>
     <tr><td>2026-08-31</td><td>2.932</td><td>[2.774, 3.089]</td><td>2.970</td><td>0.0384</td></tr>
     <tr><td>2026-08-29</td><td>2.927</td><td>[2.777, 3.077]</td><td>2.870</td><td>0.0572</td></tr>
@@ -114,11 +115,11 @@
 </footer>
 
 <script>
-const labels = ["2026-07-20", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-27", "2026-08-28", "2026-08-29", "2026-08-31", "2026-09-01", "2026-09-02"];
-const actual = [2.68, 2.53, 2.56, 2.67, 2.72, 2.73, 2.79, 2.66, 2.64, 2.74, 3.04, 2.93, 2.9, 2.88, 2.68, 2.87, 3.0, 2.97, 2.76, 2.93, 2.87, 2.97, 2.83, null];
-const blend = [2.7052, 2.6474, 2.5441, 2.5785, 2.6603, 2.7016, 2.7005, 2.7605, 2.6444, 2.6382, 2.751, 2.971, 2.8497, 2.8815, 2.8573, 2.7187, 2.8332, 2.9059, 2.7079, 2.7645, 2.9272, 2.9316, 2.9046, 2.8163];
-const lower = [2.628, 2.5759, 2.467, 2.5021, 2.5841, 2.6247, 2.6236, 2.682, 2.5608, 2.5546, 2.6642, 2.8577, 2.7362, 2.771, 2.7462, 2.5972, 2.7053, 2.7728, 2.5638, 2.6182, 2.7772, 2.7738, 2.747, 2.6591];
-const upper = [2.7823, 2.719, 2.6212, 2.6549, 2.7366, 2.7785, 2.7773, 2.8391, 2.7279, 2.7218, 2.8379, 3.0844, 2.9631, 2.992, 2.9684, 2.8401, 2.961, 3.039, 2.852, 2.9108, 3.0771, 3.0895, 3.0622, 2.9736];
+const labels = ["2026-07-20", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-27", "2026-08-28", "2026-08-29", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03"];
+const actual = [2.68, 2.53, 2.56, 2.67, 2.72, 2.73, 2.79, 2.66, 2.64, 2.74, 3.04, 2.93, 2.9, 2.88, 2.68, 2.87, 3.0, 2.97, 2.76, 2.93, 2.87, 2.97, 2.83, 2.83, null];
+const blend = [2.7052, 2.6474, 2.5441, 2.5785, 2.6603, 2.7016, 2.7005, 2.7605, 2.6444, 2.6382, 2.751, 2.971, 2.8497, 2.8815, 2.8573, 2.7187, 2.8332, 2.9059, 2.7079, 2.7645, 2.9272, 2.9316, 2.9046, 2.8163, 2.8041];
+const lower = [2.628, 2.5759, 2.467, 2.5021, 2.5841, 2.6247, 2.6236, 2.682, 2.5608, 2.5546, 2.6642, 2.8577, 2.7362, 2.771, 2.7462, 2.5972, 2.7053, 2.7728, 2.5638, 2.6182, 2.7772, 2.7738, 2.747, 2.6591, 2.6528];
+const upper = [2.7823, 2.719, 2.6212, 2.6549, 2.7366, 2.7785, 2.7773, 2.8391, 2.7279, 2.7218, 2.8379, 3.0844, 2.9631, 2.992, 2.9684, 2.8401, 2.961, 3.039, 2.852, 2.9108, 3.0771, 3.0895, 3.0622, 2.9736, 2.9554];
 
 new Chart(document.getElementById('chart'), {
   type: 'line',
